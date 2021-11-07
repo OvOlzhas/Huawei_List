@@ -49,4 +49,16 @@ int ListPopPlace(List* list, size_t place, list_data_t* pop_element = nullptr);
 
 size_t ListFind(List* list, list_data_t value);
 
+size_t ListBegin(List* list);
+
+size_t ListEnd(List* list);
+
+int ListNext(List* list, size_t place, size_t* next);
+
+int ListPrev(List* list, size_t place, size_t* prev);
+
+int ListOrder(List* list);
+
+int ListValueByIndex(List* list, size_t index, list_data_t* value);
+
 void ListDump_(List* list, const char* name, const char* function, const char* file, int line);

@@ -8,14 +8,9 @@
 
 static unsigned char poison = 0xF0;
 
-#define ListCheck(list) {       \
-  int error = ListCheck_(list); \
+#define ListNullCheck(list) {       \
+  int error = ListNullCheck_(list); \
   if (error) return error;      \
-}
-
-#define ListPopCheck(list, pop_elem) {  \
-  int error = ListCheck_(list);         \
-  if (error) return error;              \
 }
 
 #define ListDefaultPopElement(pop_element) {            \
@@ -24,7 +19,7 @@ static unsigned char poison = 0xF0;
   if (pop_element) *pop_element = poison_elem;          \
 }
 
-int ListCheck_(List* list) {
+int ListNullCheck_(List* list) {
   if (list == nullptr || list->capacity == 0 || list->data == nullptr
       || list->next == nullptr || list->prev == nullptr) {
     return NULL_LIST;
@@ -57,7 +52,7 @@ int ListCtor(List* list) {
 }
 
 int ListDtor(List* list) {
-  ListCheck(list);
+  ListNullCheck(list);
   free(list->data);
   free(list->next);
   free(list->prev);
@@ -67,7 +62,7 @@ int ListDtor(List* list) {
 }
 
 size_t ListTakeEmptyPlace(List* list) {
-  if (ListCheck_(list)) return 0;
+  if (ListNullCheck_(list)) return 0;
   size_t place = list->empty_place;
   list->empty_place = list->next[list->empty_place];
   return place;
@@ -102,7 +97,7 @@ int ListIncreaseCheck(List* list) {
 
 int ListPushBack(List* list, list_data_t value, size_t* new_elem_place) {
   if (new_elem_place) *new_elem_place = -1;
-  ListCheck(list);
+  ListNullCheck(list);
   if (ListIncreaseCheck(list)) return LIST_NO_MEMORY;
   size_t empty_place = ListTakeEmptyPlace(list);
   if (new_elem_place) *new_elem_place = empty_place;
@@ -121,7 +116,7 @@ int ListPushBack(List* list, list_data_t value, size_t* new_elem_place) {
 
 int ListPopBack(List* list, list_data_t* pop_element) {
   ListDefaultPopElement(pop_element);
-  ListCheck(list);
+  ListNullCheck(list);
   if (list->size == 0) return LIST_EMPTY;
   if (pop_element) {
     *pop_element = list->data[list->tail];
@@ -142,7 +137,7 @@ int ListPopBack(List* list, list_data_t* pop_element) {
 
 int ListPushFront(List* list, list_data_t value, size_t* new_elem_place) {
   if (new_elem_place) *new_elem_place = -1;
-  ListCheck(list);
+  ListNullCheck(list);
   if (ListIncreaseCheck(list)) return LIST_NO_MEMORY;
   size_t empty_place = ListTakeEmptyPlace(list);
   if (new_elem_place) *new_elem_place = empty_place;
@@ -161,7 +156,7 @@ int ListPushFront(List* list, list_data_t value, size_t* new_elem_place) {
 
 int ListPopFront(List* list, list_data_t* pop_element) {
   ListDefaultPopElement(pop_element);
-  ListCheck(list);
+  ListNullCheck(list);
   if (list->size == 0) return LIST_EMPTY;
   if (pop_element) *pop_element = list->data[list->tail];
   memset(list->data + list->head, poison, sizeof(list_data_t));
@@ -179,14 +174,16 @@ int ListPopFront(List* list, list_data_t* pop_element) {
   return LIST_OK;
 }
 
+#define CheckPlace(place) {                                           \
+  if (list->capacity <= place || list->prev[place] == -1) {           \
+    return LIST_SEGMENTATION_ERROR;                                   \
+  }                                                                   \
+}
+
 int ListPushAfter(List* list, size_t place, list_data_t value, size_t* new_elem_place) {
   if (new_elem_place) *new_elem_place = -1;
-  ListCheck(list);
-  list_data_t poison_elem;
-  memset(&poison_elem, poison, sizeof(list_data_t));
-  if (list->capacity <= place || list->data[place] == poison_elem) {
-    return LIST_SEGMENTATION_ERROR;
-  }
+  ListNullCheck(list);
+  CheckPlace(place);
   if (ListIncreaseCheck(list)) return LIST_NO_MEMORY;
   size_t empty_place = ListTakeEmptyPlace(list);
   if (new_elem_place) *new_elem_place = empty_place;
@@ -195,6 +192,7 @@ int ListPushAfter(List* list, size_t place, list_data_t value, size_t* new_elem_
   list->prev[empty_place] = place;
   list->next[place] = empty_place;
   list->prev[list->next[empty_place]] = empty_place;
+  list->size++;
   if (place == list->tail) {
     list->tail = empty_place;
   }
@@ -203,12 +201,8 @@ int ListPushAfter(List* list, size_t place, list_data_t value, size_t* new_elem_
 
 int ListPushBefore(List* list, size_t place, list_data_t value, size_t* new_elem_place) {
   if (new_elem_place) *new_elem_place = -1;
-  ListCheck(list);
-  list_data_t poison_elem;
-  memset(&poison_elem, poison, sizeof(list_data_t));
-  if (list->capacity <= place || list->data[place] == poison_elem) {
-    return LIST_SEGMENTATION_ERROR;
-  }
+  ListNullCheck(list);
+  CheckPlace(place);
   if (ListIncreaseCheck(list)) return LIST_NO_MEMORY;
   size_t empty_place = ListTakeEmptyPlace(list);
   if (new_elem_place) *new_elem_place = empty_place;
@@ -217,6 +211,7 @@ int ListPushBefore(List* list, size_t place, list_data_t value, size_t* new_elem
   list->next[empty_place] = place;
   list->prev[place] = empty_place;
   list->next[list->prev[empty_place]] = empty_place;
+  list->size++;
   if (place == list->head) {
     list->head = empty_place;
   }
@@ -225,16 +220,14 @@ int ListPushBefore(List* list, size_t place, list_data_t value, size_t* new_elem
 
 int ListPopPlace(List* list, size_t place, list_data_t* pop_element) {
   ListDefaultPopElement(pop_element);
-  ListCheck(list);
-  list_data_t poison_elem;
-  memset(&poison_elem, poison, sizeof(list_data_t));
-  if (list->size == 0 || list->capacity <= place || list->data[place] == poison_elem) {
+  ListNullCheck(list);
+  if (list->size == 0 || list->capacity <= place || list->prev[place] == -1) {
     return LIST_OK;
   }
   if (list->prev[place] != 0) {
     list->next[list->prev[place]] = list->next[place];
   }
-  if (list->prev[place] != 0) {
+  if (list->next[place] != 0) {
     list->prev[list->next[place]] = list->prev[place];
   }
   if (list->tail == place) {
@@ -246,13 +239,14 @@ int ListPopPlace(List* list, size_t place, list_data_t* pop_element) {
   list->prev[place] = -1;
   list->next[place] = list->empty_place;
   list->empty_place = place;
+  list->size--;
   if(pop_element) *pop_element = list->data[place];
-  list->data[place] = poison_elem;
+  memset(list->data + place, poison, sizeof(list_data_t));
   return LIST_OK;
 }
 
 size_t ListFind(List* list, list_data_t value) {
-  if (ListCheck_(list)) return -1;
+  if (ListNullCheck_(list)) return -1;
   size_t index = list->head;
   while (index != 0) {
     if (list->data[index] == value) {
@@ -263,9 +257,69 @@ size_t ListFind(List* list, list_data_t value) {
   return -1;
 }
 
+size_t ListBegin(List* list) {
+  if (list->head == 0) return -1;
+  return list->head;
+}
+
+size_t ListEnd(List* list) {
+  if (list->tail == 0) return -1;
+  return list->tail;
+}
+
+int ListNext(List* list, size_t place, size_t* next) {
+  ListNullCheck(list);
+  CheckPlace(place);
+  if (list->next[place] == 0) *next = -1;
+  else *next = list->next[place];
+  return LIST_OK;
+}
+
+int ListPrev(List* list, size_t place, size_t* prev) {
+  ListNullCheck(list);
+  CheckPlace(place);
+  if (list->prev[place] == 0) *prev = -1;
+  else *prev = list->prev[place];
+  return LIST_OK;
+}
+
+int ListOrder(List* list) {
+  ListNullCheck(list);
+  list_data_t* ordered_array = (list_data_t*)calloc(list->size, sizeof(list_data_t));
+  size_t pointer = list->head;
+  size_t index = 0;
+  while (pointer != 0) {
+    ordered_array[index++] = list->data[pointer];
+    pointer = list->next[pointer];
+  }
+  for (int i = 1; i <= list->size; i++) {
+    list->data[i] = ordered_array[i - 1];
+    list->prev[i] = i - 1;
+    list->next[i] = i + 1;
+  }
+  list->next[list->size] = 0;
+  list->head = 1;
+  list->tail = list->size;
+  list->empty_place = list->capacity == list->size + 1 ? 0 : list->size + 1;
+  memset(list->data + list->size + 1, poison, sizeof(list_data_t) * (list->capacity - list->size - 1));
+  memset(list->prev + list->size + 1, 0xFF, sizeof(list_data_t) * (list->capacity - list->size - 1));
+  for (int i = list->size + 1; i < list->capacity; i++) {
+    list->next[i] = i + 1;
+  }
+  list->next[list->capacity - 1] = 0;
+  return LIST_OK;
+}
+
+int ListValueByIndex(List* list, size_t index, list_data_t* value) {
+  ListNullCheck(list);
+  ListOrder(list);
+  *value = list->data[index - 1];
+  return LIST_OK;
+}
+
 void ListDump_(List* list, const char* name, const char* function, const char* file, int line) {
   printf("\n");
-  if (ListCheck_(list)) {
+  if (ListNullCheck_(list)) {
     printf(RED "Null list!\n" RESET);
     return;
   }

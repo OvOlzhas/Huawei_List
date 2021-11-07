@@ -38,10 +38,15 @@ void HardTest() {
   ListVerify(ListPopBack(&list));
   ListVerify(ListPopFront(&list));
   ListVerify(ListPushAfter(&list, place50, 90));
+  ListDump(list);
   ListVerify(ListPushBefore(&list, place10, 100));
+  ListDump(list);
   ListVerify(ListPopPlace(&list, place30));
 
   ListDump(list);
+  ListVerify(ListOrder(&list));
+  ListDump(list);
+
   ListVerify(ListDtor(&list));
 }
 
