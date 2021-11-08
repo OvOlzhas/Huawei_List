@@ -2,7 +2,7 @@
 
 #define ListVerify(FUNC) {          \
   int error = FUNC;                 \
-  if (error) printf("ERROR!!!\n");  \
+  if (error) printf("\x1b[31m-----------------ERROR----------------\x1b[0m\n");  \
 };
 
 void EasyTest() {
@@ -13,10 +13,10 @@ void EasyTest() {
   ListVerify(ListPushBack(&list, 20));
   ListVerify(ListPushBack(&list, 30));
   ListVerify(ListPushBack(&list, 40));
-  ListVerify(ListPushBack(&list, 50));
-  ListVerify(ListPushBack(&list, 60));
-  ListVerify(ListPushBack(&list, 70));
-  ListVerify(ListPushBack(&list, 80));
+  ListVerify(ListPushFront(&list, 50));
+  ListVerify(ListPushFront(&list, 60));
+  ListVerify(ListPushFront(&list, 70));
+  ListVerify(ListPushFront(&list, 80));
   ListDump(list);
   ListVerify(ListDtor(&list));
 }
@@ -38,15 +38,15 @@ void HardTest() {
   ListVerify(ListPopBack(&list));
   ListVerify(ListPopFront(&list));
   ListVerify(ListPushAfter(&list, place50, 90));
-  ListDump(list);
   ListVerify(ListPushBefore(&list, place10, 100));
-  ListDump(list);
   ListVerify(ListPopPlace(&list, place30));
-
+  ListVerify(ListImage(&list));
+  for (int i = 0; i < list.size; i++) {
+    int value;
+    ListValueByIndex(&list, i, &value);
+    printf("%d: %d\n", i, value);
+  }
   ListDump(list);
-  ListVerify(ListOrder(&list));
-  ListDump(list);
-
   ListVerify(ListDtor(&list));
 }
 

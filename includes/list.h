@@ -13,6 +13,7 @@ struct List {
   size_t empty_place;
   size_t size;
   size_t capacity;
+  bool ordered;
 };
 
 enum ListError {
@@ -21,6 +22,9 @@ enum ListError {
   NULL_LIST = 2,
   LIST_EMPTY = 3,
   LIST_SEGMENTATION_ERROR = 4,
+  LIST_SIZE_MORE_CAPACITY = 5,
+  LIST_INCORRECT_NEXT_OR_PREV = 6,
+  LIST_DOT_FILE_CANNOT_OPEN = 7
 };
 
 #define ListDump(list) {                                              \
@@ -62,3 +66,5 @@ int ListOrder(List* list);
 int ListValueByIndex(List* list, size_t index, list_data_t* value);
 
 void ListDump_(List* list, const char* name, const char* function, const char* file, int line);
+
+int ListImage(List* list);
