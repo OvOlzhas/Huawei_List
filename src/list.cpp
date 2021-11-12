@@ -389,14 +389,6 @@ int ListImage(List* list) {
   FILE* fout = fopen("dot.txt", "w");
   if (fout == nullptr) return LIST_DOT_FILE_CANNOT_OPEN;
   fprintf(fout, "digraph {\n");
-//  for (size_t i = 0; i < list->capacity; i++) {
-//    fprintf(fout, "node%zu", i);
-//    if (i == list->capacity - 1) {
-//      fprintf(fout, "[style=\"invis\"]\n");
-//    } else {
-//      fprintf(fout, "->");
-//    }
-//  }
   size_t pointer = list->head;
   fprintf(fout, "\"head\"->node%zu", list->head);
   fprintf(fout, "\"tail\"->node%zu", list->tail);
@@ -417,5 +409,7 @@ int ListImage(List* list) {
   }
   fprintf(fout, "}");
   fclose(fout);
+  system("dot dot.txt -Tpng -o image.png");
+  system("xdg-open image.png");
   return LIST_OK;
 }
