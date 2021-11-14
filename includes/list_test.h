@@ -4,3 +4,5 @@
 void EasyTest();
 
 void HardTest();
+
+void DecreaseTest();

@@ -88,9 +88,7 @@ int ListRealloc(List* list) {
 int ListIncreaseCheck(List* list) {
   if (list->size + 1 == list->capacity) {
     list->capacity <<= 1;
-    if (ListRealloc(list)) {
-      return LIST_NO_MEMORY;
-    }
+    if (ListRealloc(list)) return LIST_NO_MEMORY;
     memset(list->data + (list->capacity >> 1), poison, (list->capacity >> 1) * sizeof(list_data_t));
     memset(list->prev + (list->capacity >> 1), 0xFF, (list->capacity >> 1) * sizeof(size_t));
     for (size_t i = list->capacity >> 1; i < list->capacity; i++) {
@@ -98,6 +96,16 @@ int ListIncreaseCheck(List* list) {
     }
     list->next[list->capacity - 1] = 0;
     list->empty_place = list->capacity >> 1;
+  }
+  return LIST_OK;
+}
+
+int ListDecreaseCheck(List* list) {
+  if (list->size + 1 == list->capacity / 4 && list->capacity != 8) {
+    ListOrder(list);
+    list->capacity >>= 1;
+    if (ListRealloc(list)) return LIST_NO_MEMORY;
+    list->next[list->capacity - 1] = 0;
   }
   return LIST_OK;
 }
@@ -133,6 +141,7 @@ int ListPopBack(List* list, list_data_t* pop_element) {
   list->prev[0] = list->tail;
   list->head = list->next[0];
   list->size--;
+  if (ListDecreaseCheck(list)) return LIST_NO_MEMORY;
   return LIST_OK;
 }
 
@@ -170,6 +179,7 @@ int ListPopFront(List* list, list_data_t* pop_element) {
   list->empty_place = empty_place;
   list->size--;
   list->sorted = false;
+  if (ListDecreaseCheck(list)) return LIST_NO_MEMORY;
   return LIST_OK;
 }
 
@@ -234,6 +244,7 @@ int ListPopPlace(List* list, size_t place, list_data_t* pop_element) {
   list->empty_place = place;
   list->size--;
   list->sorted = false;
+  if (ListDecreaseCheck(list)) return LIST_NO_MEMORY;
   return LIST_OK;
 }
 
@@ -277,6 +288,7 @@ int ListPrev(List* list, size_t place, size_t* prev) {
 
 int ListOrder(List* list) {
   ListCheck(list);
+  if (list->sorted) return LIST_OK;
   list_data_t* ordered_array = (list_data_t*)calloc(list->size, sizeof(list_data_t));
   size_t pointer = list->head;
   size_t index = 0;
@@ -300,13 +312,15 @@ int ListOrder(List* list) {
   }
   list->next[list->capacity - 1] = 0;
   list->sorted = true;
+  list->next[0] = list->head;
+  list->prev[0] = list->tail;
   free(ordered_array);
   return LIST_OK;
 }
 
 int ListValueByIndex(List* list, size_t index, list_data_t* value) {
   ListCheck(list);
-  if (!list->sorted) ListOrder(list);
+  ListOrder(list);
   *value = list->data[index + 1];
   return LIST_OK;
 }
@@ -360,9 +374,9 @@ void ListDump_(List* list, const char* name, const char* function, const char* f
   printf("\n");
 }
 
-int ListImage(List* list) {
+int ListImage_(List* list, const char* file_name) {
   ListCheck(list);
-  FILE* fout = fopen("dot.txt", "w");
+  FILE* fout = fopen(file_name, "w");
   if (fout == nullptr) return LIST_DOT_FILE_CANNOT_OPEN;
   fprintf(fout, "digraph {\n");
   size_t pointer = list->head;
@@ -385,7 +399,10 @@ int ListImage(List* list) {
   }
   fprintf(fout, "}");
   fclose(fout);
-  system("dot dot.txt -Tpng -o image.png");
-  system("xdg-open image.png");
+  char command[4 + strlen(file_name) + 1 + 5 + 1 + 2 + strlen(file_name) + 4];
+  sprintf(command, "dot %s -Tpng -o %s.png", file_name, file_name);
+  system(command);
+  sprintf(command, "xdg-open %s.png", file_name);
+  system(command);
   return LIST_OK;
 }

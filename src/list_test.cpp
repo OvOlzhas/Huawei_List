@@ -40,13 +40,35 @@ void HardTest() {
   ListVerify(ListPushAfter(&list, place50, 90));
   ListVerify(ListPushBefore(&list, place10, 100));
   ListVerify(ListPopPlace(&list, place30));
-  ListVerify(ListImage(&list));
+  ListImage(list);
   for (int i = 0; i < list.size; i++) {
     int value;
     ListValueByIndex(&list, i, &value);
     printf("%d: %d\n", i, value);
   }
   ListDump(list);
+  ListVerify(ListDtor(&list));
+}
+
+void DecreaseTest() {
+  printf("----------------------------------------DECREASE_TEST------------------------------------------\n");
+  List list = {};
+  ListVerify(ListCtor(&list));
+  ListVerify(ListPushBack(&list, 10));
+  ListVerify(ListPushBack(&list, 20));
+  ListVerify(ListPushBack(&list, 30));
+  ListVerify(ListPushBack(&list, 40));
+  ListVerify(ListPushFront(&list, 50));
+  ListVerify(ListPushFront(&list, 60));
+  ListVerify(ListPushFront(&list, 70));
+  ListVerify(ListPushFront(&list, 80));
+  ListVerify(ListPopBack(&list));
+  ListVerify(ListPopBack(&list));
+  ListVerify(ListPopBack(&list));
+  ListVerify(ListPopBack(&list));
+  ListVerify(ListPopBack(&list));
+  ListDump(list);
+  ListImage(list);
   ListVerify(ListDtor(&list));
 }
 

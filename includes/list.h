@@ -67,4 +67,9 @@ int ListValueByIndex(List* list, size_t index, list_data_t* value);
 
 void ListDump_(List* list, const char* name, const char* function, const char* file, int line);
 
-int ListImage(List* list);
+#define ListImage(list) {                         \
+  char name[strlen(#list) + 20];                  \
+  sprintf(name, "%s_line_%d", #list, __LINE__);   \
+}
+
+int ListImage_(List* list, const char* file_name);

@@ -3,5 +3,6 @@
 int main() {
   EasyTest();
   HardTest();
+  DecreaseTest();
   return 0;
 }
