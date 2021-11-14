@@ -13,7 +13,7 @@ struct List {
   size_t empty_place;
   size_t size;
   size_t capacity;
-  bool ordered;
+  bool sorted;
 };
 
 enum ListError {

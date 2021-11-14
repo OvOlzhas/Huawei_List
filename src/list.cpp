@@ -8,15 +8,13 @@
 
 static unsigned char poison = 0xF0;
 
-#define ListCheck(list) {       \
-  int error = ListCheck_(list); \
+#define ListCheck(list) {           \
+  int error = ListCheck_(list);     \
   if (error) return error;          \
 }
 
-#define ListDefaultPopElement(pop_element) {            \
-  list_data_t poison_elem;                              \
-  memset(&poison_elem, poison, sizeof(list_data_t));    \
-  if (pop_element) *pop_element = poison_elem;          \
+#define ListPoisonElement(element) {                                \
+  if (element) memset(element, poison, sizeof(list_data_t));        \
 }
 
 int ListCheck_(List* list) {
@@ -42,7 +40,7 @@ int ListCheck_(List* list) {
 int ListCtor(List* list) {
   list->capacity = 8;
   list->size = 0;
-  list->ordered = true;
+  list->sorted = true;
   list->data = (list_data_t*)calloc(list->capacity, sizeof(list_data_t));
   list->next = (size_t*)calloc(list->capacity, sizeof(size_t));
   list->prev = (size_t*)calloc(list->capacity, sizeof(size_t));
@@ -113,33 +111,27 @@ int ListPushBack(List* list, list_data_t value, size_t* new_elem_place) {
   list->data[empty_place] = value;
   list->prev[empty_place] = list->tail;
   list->next[empty_place] = 0;
-  if (list->tail != 0) {
-    list->next[list->tail] = empty_place;
-  } else {
-    list->head = empty_place;
-  }
+  list->next[list->tail] = empty_place;
+  list->prev[0] = empty_place;
   list->tail = empty_place;
+  list->head = list->next[0];
   list->size++;
   return LIST_OK;
 }
 
 int ListPopBack(List* list, list_data_t* pop_element) {
-  ListDefaultPopElement(pop_element);
+  ListPoisonElement(pop_element);
   ListCheck(list);
   if (list->size == 0) return LIST_EMPTY;
-  if (pop_element) {
-    *pop_element = list->data[list->tail];
-  }
-  memset(list->data + list->tail, poison, sizeof(list_data_t));
+  if (pop_element) *pop_element = list->data[list->tail];
+  ListPoisonElement(list->data + list->tail);
   list->next[list->tail] = list->empty_place;
   list->empty_place = list->tail;
   list->tail = list->prev[list->tail];
-  if (list->tail != 0) {
-    list->prev[list->next[list->tail]] = -1;
-    list->next[list->tail] = 0;
-  } else {
-    list->head = 0;
-  }
+  list->prev[list->next[list->tail]] = -1;
+  list->next[list->tail] = 0;
+  list->prev[0] = list->tail;
+  list->head = list->next[0];
   list->size--;
   return LIST_OK;
 }
@@ -153,35 +145,31 @@ int ListPushFront(List* list, list_data_t value, size_t* new_elem_place) {
   list->data[empty_place] = value;
   list->next[empty_place] = list->head;
   list->prev[empty_place] = 0;
-  if (list->head != 0) {
-    list->prev[list->head] = empty_place;
-  } else {
-    list->tail = empty_place;
-  }
+  list->prev[list->head] = empty_place;
+  list->next[0] = empty_place;
   list->head = empty_place;
-  list->ordered = false;
+  list->tail = list->prev[0];
   list->size++;
+  list->sorted = false;
   return LIST_OK;
 }
 
 int ListPopFront(List* list, list_data_t* pop_element) {
-  ListDefaultPopElement(pop_element);
+  ListPoisonElement(pop_element);
   ListCheck(list);
   if (list->size == 0) return LIST_EMPTY;
   if (pop_element) *pop_element = list->data[list->tail];
-  memset(list->data + list->head, poison, sizeof(list_data_t));
+  ListPoisonElement(list->data + list->head);
   list->prev[list->head] = -1;
   size_t empty_place = list->head;
   list->head = list->next[list->head];
-  if (list->head != 0) {
-    list->next[list->prev[list->head]] = list->empty_place;
-    list->prev[list->head] = 0;
-  } else {
-    list->tail = 0;
-  }
+  list->next[list->prev[list->head]] = list->empty_place;
+  list->prev[list->head] = 0;
+  list->next[0] = list->head;
+  list->tail = list->prev[0];
   list->empty_place = empty_place;
-  list->ordered = false;
   list->size--;
+  list->sorted = false;
   return LIST_OK;
 }
 
@@ -204,11 +192,9 @@ int ListPushAfter(List* list, size_t place, list_data_t value, size_t* new_elem_
   list->next[place] = empty_place;
   list->prev[list->next[empty_place]] = empty_place;
   list->size++;
-  if (place == list->tail) {
-    list->tail = empty_place;
-  } else {
-    list->ordered = false;
-  }
+  list->head = list->next[0];
+  list->tail = list->prev[0];
+  list->sorted = false;
   return LIST_OK;
 }
 
@@ -225,39 +211,29 @@ int ListPushBefore(List* list, size_t place, list_data_t value, size_t* new_elem
   list->prev[place] = empty_place;
   list->next[list->prev[empty_place]] = empty_place;
   list->size++;
-  if (place == list->head) {
-    list->head = empty_place;
-  }
-  list->ordered = false;
+  list->head = list->next[0];
+  list->tail = list->prev[0];
+  list->sorted = false;
   return LIST_OK;
 }
 
 int ListPopPlace(List* list, size_t place, list_data_t* pop_element) {
-  ListDefaultPopElement(pop_element);
+  ListPoisonElement(pop_element);
   ListCheck(list);
   if (list->size == 0 || list->capacity <= place || list->prev[place] == -1) {
     return LIST_OK;
   }
-  if (list->prev[place] != 0) {
-    list->next[list->prev[place]] = list->next[place];
-  }
-  if (list->next[place] != 0) {
-    list->prev[list->next[place]] = list->prev[place];
-  }
-  if (list->tail == place) {
-    list->tail = list->prev[place];
-  } else {
-    list->ordered = false;
-  }
-  if (list->head == place) {
-    list->head = list->next[place];
-  }
+  if(pop_element) *pop_element = list->data[place];
+  ListPoisonElement(list->data + place);
+  list->next[list->prev[place]] = list->next[place];
+  list->prev[list->next[place]] = list->prev[place];
+  list->head = list->next[0];
+  list->tail = list->prev[0];
   list->prev[place] = -1;
   list->next[place] = list->empty_place;
   list->empty_place = place;
   list->size--;
-  if(pop_element) *pop_element = list->data[place];
-  memset(list->data + place, poison, sizeof(list_data_t));
+  list->sorted = false;
   return LIST_OK;
 }
 
@@ -323,14 +299,14 @@ int ListOrder(List* list) {
     list->next[i] = i + 1;
   }
   list->next[list->capacity - 1] = 0;
-  list->ordered = true;
+  list->sorted = true;
   free(ordered_array);
   return LIST_OK;
 }
 
 int ListValueByIndex(List* list, size_t index, list_data_t* value) {
   ListCheck(list);
-  if (!list->ordered) ListOrder(list);
+  if (!list->sorted) ListOrder(list);
   *value = list->data[index + 1];
   return LIST_OK;
 }
@@ -390,19 +366,19 @@ int ListImage(List* list) {
   if (fout == nullptr) return LIST_DOT_FILE_CANNOT_OPEN;
   fprintf(fout, "digraph {\n");
   size_t pointer = list->head;
-  fprintf(fout, "\"head\"->node%zu", list->head);
-  fprintf(fout, "\"tail\"->node%zu", list->tail);
-  fprintf(fout, "\"empty_place\"->node%zu", list->empty_place);
+  fprintf(fout, "\t\"head\"->node%zu\n", list->head);
+  fprintf(fout, "\t\"tail\"->node%zu\n", list->tail);
+  fprintf(fout, "\t\"empty_place\"->node%zu\n", list->empty_place);
   for (size_t i = 0; i <= list->size; i++) {
-    fprintf(fout, "\tnode%zu[color=\"blue\", shape=record, label = \"{<prev>prev\\n%zu|data\\n%d|address\\n%zu|<next>next\\n%zu}\"]\n",
+    fprintf(fout, "\tnode%zu[color=\"blue\", shape=record, label = \"{<prev>prev\\n%zu|{data\\n%d|address\\n%zu}|<next>next\\n%zu}\"]\n",
             pointer, list->prev[pointer], list->data[pointer], pointer, list->next[pointer]);
-    fprintf(fout, "\tnode%zu:<prev>->node%zu[color=\"blue\"]\n", pointer, list->prev[pointer]);
     fprintf(fout, "\tnode%zu:<next>->node%zu[color=\"blue\"]\n", pointer, list->next[pointer]);
+    fprintf(fout, "\tnode%zu:<prev>->node%zu[color=\"blue\"]\n", pointer, list->prev[pointer]);
     pointer = list->next[pointer];
   }
   pointer = list->empty_place;
   while (pointer != 0) {
-    fprintf(fout, "\tnode%zu[color=\"red\", shape=record, label = \"{<prev>prev\\n%zu|data\\n%d|address\\n%zu|<next>next\\n%zu}\"]\n",
+    fprintf(fout, "\tnode%zu[color=\"red\", shape=record, label = \"{<prev>prev\\n%zu|{data\\n%d|address\\n%zu}|<next>next\\n%zu}\"]\n",
             pointer, list->prev[pointer], list->data[pointer], pointer, list->next[pointer]);
     fprintf(fout, "\tnode%zu:<next>->node%zu[color=\"red\"]\n", pointer, list->next[pointer]);
     pointer = list->next[pointer];
